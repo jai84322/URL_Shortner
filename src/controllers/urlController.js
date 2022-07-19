@@ -2,11 +2,13 @@ const urlModel = require("../models/urlModel");
 const shortId = require("shortid");
 const axios = require("axios");
 
+//-------------------------------------Create Short URL-------------------------------------
 const createShortURL = async function (req, res) {
   try {
     let { longUrl, shortUrl, urlCode } = req.body;
     let obj = {};
 
+    // validating inout from req.body
     if (Object.keys(req.body).length == 0) {
       return res
         .status(400)
@@ -25,6 +27,7 @@ const createShortURL = async function (req, res) {
         .send({ status: false, message: "longUrl is missing" });
     }
 
+    // validating the longURL
     let found = false;
     await axios
       .get(longUrl)
@@ -36,6 +39,7 @@ const createShortURL = async function (req, res) {
     if (!found)
       return res.status(400).send({ status: "false", message: "Invalid URL" });
 
+    // checking for duplicate longURL
     let checkURL = await urlModel
       .findOne({ longUrl: longUrl })
       .select({ _id: 0, __v: 0 });
@@ -53,21 +57,23 @@ const createShortURL = async function (req, res) {
       obj.urlCode.toLocaleLowerCase()
     );
 
+    // creating new data
     await urlModel.create(obj);
     let finalData = await urlModel.findOne(obj).select({ _id: 0, __v: 0 });
     return res
       .status(201)
       .send({ status: true, message: "success", data: finalData });
   } catch (err) {
-    console.log(err);
     return res.status(500).send({ status: false, messgae: err.messgae });
   }
 };
 
+//-------------------------------------get Long URL-------------------------------------
 const getURL = async function (req, res) {
   try {
     let urlCode = req.params.urlCode;
 
+    // validating urlCode
     if (!shortId.isValid(urlCode))
       return res
         .status(400)
@@ -80,12 +86,9 @@ const getURL = async function (req, res) {
         .status(404)
         .send({ status: false, message: "urlCode is not found" });
 
-    res
-      .status(302)
-      .redirect(getLongURL.longUrl, 302)
-      .send(`Found. Redirecting to ${getLongURL.longUrl}`);
+    // redirecting to longURL from short URL
+    res.redirect(getLongURL.longUrl);
   } catch (err) {
-    console.log(err);
     return res.status(500).send({ status: false, messgae: err.messgae });
   }
 };

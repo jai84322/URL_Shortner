@@ -6,7 +6,7 @@ router.post("/url/shorten", createShortURL);
 router.get("/:urlCode", getURL);
 
 // validating the route
-router.all("/**", function (req, res) {
+router.all("/*", function (req, res) {
   res.status(400).send({ status: false, message: "invalid http request" });
 });
 
