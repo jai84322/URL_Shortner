@@ -53,7 +53,7 @@ const createShortURL = async function (req, res) {
       return res.status(201).send({
         status: true,
         message: "Url is already shortened",
-        data: cachedLongUrl,
+        data: JSON.parse(cachedLongUrl),
       });
     else {
       let found = false;
@@ -74,14 +74,6 @@ const createShortURL = async function (req, res) {
         .findOne({ longUrl: longUrl })
         .select({ _id: 0, __v: 0 });
 
-      //   if (checkURL) {
-      //     return res.status(201).send({
-      //       status: true,
-      //       message: "Url is already shortened",
-      //       data: checkURL,
-      //     });
-      //   }
-
       if (!checkURL) {
         obj.longUrl = longUrl;
         obj.urlCode = shortId.generate();
@@ -95,8 +87,8 @@ const createShortURL = async function (req, res) {
         checkURL = await urlModel.findOne(obj).select({ _id: 0, __v: 0 });
       }
 
-      await SET_ASYNC(longUrl, JSON.stringify(checkURL));
-      await SET_ASYNC(checkURL.urlCode, JSON.stringify(checkURL));
+      await SET_ASYNC(`${longUrl}`, JSON.stringify(checkURL));
+      await SET_ASYNC(`${checkURL.urlCode}`, JSON.stringify(checkURL));
 
       return res
         .status(201)
@@ -119,8 +111,8 @@ const getURL = async function (req, res) {
         .send({ status: false, message: "Enter valid urlCode" });
 
     let cachedUrlCode = await GET_ASYNC(urlCode);
-    console.log(cachedUrlCode);
-    if (cachedUrlCode) res.redirect(cachedUrlCode);
+    let data = JSON.parse(cachedUrlCode);
+    if (cachedUrlCode) res.redirect(data.longUrl);
     else {
       let getLongURL = await urlModel.findOne({ urlCode: urlCode });
       if (!getLongURL)
@@ -128,11 +120,8 @@ const getURL = async function (req, res) {
           .status(404)
           .send({ status: false, message: "urlCode is not found" });
 
-      await SET_ASYNC(`${urlCode}`, JSON.stringify(getLongURL.longUrl));
-      await SET_ASYNC(
-        `${getLongURL.longUrl}`,
-        JSON.stringify(getLongURL.urlCode)
-      );
+      await SET_ASYNC(`${urlCode}`, JSON.stringify(getLongURL));
+      await SET_ASYNC(`${getLongURL.longUrl}`, JSON.stringify(getLongURL));
 
       // redirecting to longURL from short URL
       res.redirect(getLongURL.longUrl);
@@ -146,15 +135,3 @@ module.exports = {
   createShortURL,
   getURL,
 };
-
-// const shortUrl = `http://localhost:3000/${urlCode}`;
-//             const data = {};
-//             data["longUrl"] = longUrl;
-//             data["shortUrl"] = shortUrl;
-//             data["urlCode"] = urlCode;
-
-//             let profile = await urlModel.create(data);
-//             await SET_ASYNC(`${longUrl}`, JSON.stringify(profile));
-//             await SET_ASYNC(`${urlCode}`, JSON.stringify(profile));
-//             let profile1=await urlModel.findOne({urlCode:urlCode}).select({ _id:0,createdAt: 0, updatedAt: 0, __v: 0 })
-//             res.status(201).send({ data: profile1 });
