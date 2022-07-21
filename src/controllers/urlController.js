@@ -66,9 +66,7 @@ const createShortURL = async function (req, res) {
         .then((response) => {
           if (response.status == 200 || response.status == 201) found = true;
         })
-        .catch((err) => {
-          // console.log(err.message);
-        });
+        .catch((err) => {});
 
       if (!found)
         return res
@@ -95,14 +93,19 @@ const createShortURL = async function (req, res) {
       }
 
       // set values in cache memory
-      await SETEX_ASYNC(`${longUrl}`, "1h", JSON.stringify(checkURL));
-      await SETEX_ASYNC(`${checkURL.urlCode}`, "1h", JSON.stringify(checkURL));
+      await SETEX_ASYNC(`${longUrl}`, 24 * 60 * 60, JSON.stringify(checkURL));
+      await SETEX_ASYNC(
+        `${checkURL.urlCode}`,
+        24 * 60 * 60,
+        JSON.stringify(checkURL)
+      );
 
       return res
         .status(201)
         .send({ status: true, message: "success", data: checkURL });
     }
   } catch (err) {
+    console.log(err);
     return res.status(500).send({ status: false, messgae: err.messgae });
   }
 };
@@ -132,10 +135,10 @@ const getURL = async function (req, res) {
           .status(404)
           .send({ status: false, message: "urlCode is not found" });
 
-      await SETEX_ASYNC(`${urlCode}`, "1h", JSON.stringify(getLongURL));
+      await SETEX_ASYNC(`${urlCode}`, 24 * 60 * 60, JSON.stringify(getLongURL));
       await SETEX_ASYNC(
         `${getLongURL.longUrl}`,
-        "1h",
+        24 * 60 * 60,
         JSON.stringify(getLongURL)
       );
 
