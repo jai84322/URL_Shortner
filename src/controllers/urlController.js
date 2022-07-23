@@ -31,61 +31,42 @@ const createShortURL = async function (req, res) {
 
     // validating inout from req.body
     if (Object.keys(req.body).length == 0) {
-      return res
-        .status(400)
-        .send({ status: false, message: "please enter valid request input" });
+      return res.status(400).send({ status: false, message: "please enter valid request input" });
     }
 
     if (shortUrl || urlCode) {
-      return res
-        .status(400)
-        .send({ status: false, message: "please enter longUrl only" });
+      return res.status(400).send({ status: false, message: "please enter longUrl only" });
     }
 
     if (!longUrl) {
-      return res
-        .status(400)
-        .send({ status: false, message: "longUrl is missing" });
+      return res.status(400).send({ status: false, message: "longUrl is missing" });
     }
 
     // checking in cache memory
     let cachedLongUrl = await GET_ASYNC(longUrl);
     // cache hit case
     if (cachedLongUrl)
-      return res.status(201).send({
-        status: true,
-        message: "Url is already shortened",
-        data: JSON.parse(cachedLongUrl),
-      });
+      return res.status(201).send({ status: true, message: "Url is already shortened", data: JSON.parse(cachedLongUrl)});
     // cache miss case
     else {
       // validating the URL
       let found = false;
-      await axios
-        .get(longUrl)
-        .then((response) => {
-          if (response.status == 200 || response.status == 201) found = true;
-        })
+      await axios.get(longUrl).then((response) => {
+          if (response.status == 200 || response.status == 201) found = true })
         .catch((err) => {});
 
       if (!found)
-        return res
-          .status(400)
-          .send({ status: "false", message: "Invalid URL" });
+        return res.status(400).send({ status: "false", message: "Invalid URL" });
 
       // checking for duplicate longURL
-      let checkURL = await urlModel
-        .findOne({ longUrl: longUrl })
-        .select({ _id: 0, __v: 0 });
+      let checkURL = await urlModel.findOne({ longUrl: longUrl }).select({ _id: 0, __v: 0 });
 
       // if longURL is not present in collection, creating new data
       if (!checkURL) {
         obj.longUrl = longUrl;
         obj.urlCode = shortId.generate();
 
-        obj.shortUrl = "http://localhost:3000/".concat(
-          obj.urlCode.toLocaleLowerCase()
-        );
+        obj.shortUrl = "http://localhost:3000/".concat(obj.urlCode.toLocaleLowerCase());
 
         // creating new data
         await urlModel.create(obj);
@@ -94,15 +75,9 @@ const createShortURL = async function (req, res) {
 
       // set values in cache memory
       await SETEX_ASYNC(`${longUrl}`, 24 * 60 * 60, JSON.stringify(checkURL));
-      await SETEX_ASYNC(
-        `${checkURL.urlCode}`,
-        24 * 60 * 60,
-        JSON.stringify(checkURL)
-      );
+      await SETEX_ASYNC(`${checkURL.urlCode}`, 24 * 60 * 60, JSON.stringify(checkURL));
 
-      return res
-        .status(201)
-        .send({ status: true, message: "success", data: checkURL });
+      return res.status(201).send({ status: true, message: "success", data: checkURL });
     }
   } catch (err) {
     console.log(err);
@@ -117,9 +92,7 @@ const getURL = async function (req, res) {
 
     // validating urlCode
     if (!shortId.isValid(urlCode))
-      return res
-        .status(400)
-        .send({ status: false, message: "Enter valid urlCode" });
+      return res.status(400).send({ status: false, message: "Enter valid urlCode" });
 
     // checking in cache memory
     let cachedUrlCode = await GET_ASYNC(urlCode);
@@ -131,16 +104,10 @@ const getURL = async function (req, res) {
       // cache miss case
       let getLongURL = await urlModel.findOne({ urlCode: urlCode });
       if (!getLongURL)
-        return res
-          .status(404)
-          .send({ status: false, message: "urlCode is not found" });
+        return res.status(404).send({ status: false, message: "urlCode is not found" });
 
       await SETEX_ASYNC(`${urlCode}`, 24 * 60 * 60, JSON.stringify(getLongURL));
-      await SETEX_ASYNC(
-        `${getLongURL.longUrl}`,
-        24 * 60 * 60,
-        JSON.stringify(getLongURL)
-      );
+      await SETEX_ASYNC(`${getLongURL.longUrl}`, 24 * 60 * 60, JSON.stringify(getLongURL));
 
       // redirecting to longURL from short URL
       res.redirect(getLongURL.longUrl);
@@ -154,3 +121,4 @@ module.exports = {
   createShortURL,
   getURL,
 };
+
